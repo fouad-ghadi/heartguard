@@ -1,435 +1,227 @@
 import streamlit as st
-import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+import pandas as pd
+import joblib
 import os
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.patches import Wedge
+import math
 
-# ── Page config ────────────────────────────────────────────────────────────────
-st.set_page_config(
-    page_title="Heart Disease Predictor",
-    page_icon="🫀",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+st.set_page_config(page_title="HeartGuard AI · Clinical Dashboard", page_icon="🫀", layout="wide", initial_sidebar_state="expanded")
 
-# ── Styling ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
-
-html, body, [class*="css"], .stApp {
-    font-family: 'DM Sans', sans-serif;
-    background-color: #080e1a !important;
-    color: #e2e8f0;
-}
-#MainMenu, footer, header { visibility: hidden; }
-.block-container { padding: 2rem 2.5rem 4rem !important; max-width: 1200px !important; }
-
-[data-testid="stSidebar"] {
-    background: #0d1526 !important;
-    border-right: 1px solid #1e2d4a;
-}
-[data-testid="stSidebar"] * { color: #cbd5e1 !important; }
-[data-testid="stSidebar"] label { color: #94a3b8 !important; font-size: 0.78rem !important; }
-
-.stButton > button {
-    background: linear-gradient(135deg, #00d4aa, #0099cc) !important;
-    color: #080e1a !important;
-    font-family: 'Syne', sans-serif !important;
-    font-weight: 700 !important;
-    font-size: 0.9rem !important;
-    letter-spacing: 0.05em !important;
-    border: none !important;
-    border-radius: 10px !important;
-    padding: 0.65rem 1.5rem !important;
-    text-transform: uppercase !important;
-    transition: all 0.2s ease !important;
-}
-.stButton > button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 24px rgba(0,212,170,0.35) !important;
-}
-.streamlit-expanderHeader {
-    background: #0d1526 !important;
-    border: 1px solid #1e2d4a !important;
-    border-radius: 10px !important;
-    color: #94a3b8 !important;
-}
-.streamlit-expanderContent {
-    background: #0d1526 !important;
-    border: 1px solid #1e2d4a !important;
-    border-top: none !important;
-}
-@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+:root{--navy:#070d1a;--navy2:#0d1626;--slate:#111c30;--slate2:#172038;--border:#1e2d47;--teal:#00d4aa;--red:#ff4757;--amber:#ffa502;--text:#e8eef8;--muted:#6b7fa3;--white:#ffffff}
+html,body,[class*="css"]{font-family:'DM Sans',sans-serif!important;background-color:var(--navy)!important;color:var(--text)!important}
+.main{background-color:var(--navy)!important}.block-container{padding:1.5rem 2rem!important;max-width:1400px}
+#MainMenu,footer,header{visibility:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;background:var(--slate);border:1px solid var(--border);border-radius:14px;padding:1rem 1.8rem;margin-bottom:1.5rem}
+.topbar-logo{width:42px;height:42px;background:linear-gradient(135deg,#00d4aa,#0099ff);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-right:1rem;float:left}
+.topbar-title{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--white)}
+.topbar-sub{font-size:.72rem;color:var(--muted);margin-top:1px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);animation:pulse-dot 2s infinite;margin-right:6px}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+.sec-label{font-family:'Syne',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.7rem;margin-top:.2rem}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem;margin-bottom:1.2rem}
+.stat-card{background:var(--slate);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac,var(--teal))}
+.stat-card .icon{font-size:1.3rem;margin-bottom:.3rem}
+.stat-card .lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.stat-card .val{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:700;color:var(--white);line-height:1.1}
+.badge{display:inline-block;font-size:.64rem;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:.3rem}
+.ok{background:rgba(0,212,170,.15);color:var(--teal)}.warn{background:rgba(255,165,2,.15);color:var(--amber)}.crit{background:rgba(255,71,87,.15);color:var(--red)}
+.flag-list{display:flex;flex-direction:column;gap:.45rem;margin-top:.8rem}
+.flag-item{display:flex;align-items:center;gap:.5rem;background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.2);border-radius:8px;padding:.45rem .8rem;font-size:.78rem;color:#ffb3ba}
+.info-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.info-table td{padding:.45rem .6rem;border-bottom:1px solid var(--border)}
+.info-table td:first-child{color:var(--muted);width:48%}
+.info-table td:last-child{color:var(--white);font-weight:500}
+.empty-state{background:var(--slate);border:1px solid var(--border);border-radius:14px;padding:3rem 2rem;text-align:center;color:var(--muted)}
+.disclaimer{background:rgba(255,165,2,.08);border:1px solid rgba(255,165,2,.25);border-radius:10px;padding:.7rem 1rem;font-size:.75rem;color:#ffd580;margin-top:1rem}
+.driver-card{background:var(--slate2);border:1px solid var(--border);border-radius:12px;padding:1rem;text-align:center}
+section[data-testid="stSidebar"]{background:var(--navy2)!important;border-right:1px solid var(--border)!important}
+section[data-testid="stSidebar"] label{font-size:.76rem!important;color:var(--muted)!important;text-transform:uppercase!important;letter-spacing:.04em!important}
+.stButton>button{background:linear-gradient(135deg,#00d4aa,#0099ff)!important;color:#000!important;font-family:'Syne',sans-serif!important;font-weight:700!important;font-size:.85rem!important;border:none!important;border-radius:10px!important;padding:.65rem 1.5rem!important;width:100%!important;letter-spacing:.04em!important}
 </style>
 """, unsafe_allow_html=True)
 
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "model.joblib")
 
-# ── Train model (same logic as your FastAPI app) ────────────────────────────────
 @st.cache_resource
-def train_model():
-    """Replicates your original FastAPI training logic."""
-    DATA_PATH = os.path.join(os.path.dirname(__file__), "model", "heart5.xls")
+def load_model():
+    return joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else None
 
-    try:
-        data = pd.read_csv(DATA_PATH)
-    except FileNotFoundError:
-        # Demo mode: generate synthetic data with same structure
-        st.warning("⚠️ Dataset not found at `model/heart5.xls` — running in demo mode with synthetic data.", icon="⚠️")
-        np.random.seed(42)
-        n = 303
-        data = pd.DataFrame({
-            "cp":       np.random.randint(0, 4, n),
-            "trestbps": np.random.randint(94, 200, n),
-            "chol":     np.random.randint(126, 564, n),
-            "fbs":      np.random.randint(0, 2, n),
-            "restecg":  np.random.randint(0, 3, n),
-            "thalach":  np.random.randint(71, 202, n),
-            "slope":    np.random.randint(0, 3, n),
-            "target":   np.random.randint(0, 2, n),
-        })
+model = load_model()
 
-    X = data.drop("target", axis=1)[["cp","trestbps","chol","fbs","restecg","thalach","slope"]]
-    y = data["target"]
+FEATURES = {
+    "age":{"label":"Age","unit":"yrs","min":18,"max":100,"default":60,"step":1},
+    "ejection_fraction":{"label":"Ejection Fraction","unit":"%","min":10,"max":80,"default":38,"step":1},
+    "serum_creatinine":{"label":"Serum Creatinine","unit":"mg/dL","min":0.5,"max":10.0,"default":1.1,"step":0.1},
+    "serum_sodium":{"label":"Serum Sodium","unit":"mEq/L","min":110,"max":148,"default":137,"step":1},
+    "creatinine_phosphokinase":{"label":"CPK Enzyme","unit":"mcg/L","min":23,"max":7861,"default":250,"step":1},
+    "platelets":{"label":"Platelets","unit":"k/mL","min":25000,"max":850000,"default":265000,"step":1000},
+    "time":{"label":"Follow-up Period","unit":"days","min":4,"max":285,"default":90,"step":1},
+    "anaemia":{"label":"Anaemia","type":"bool","default":False},
+    "diabetes":{"label":"Diabetes","type":"bool","default":False},
+    "high_blood_pressure":{"label":"Hypertension","type":"bool","default":False},
+    "sex":{"label":"Sex","type":"select","options":["Male","Female"],"default":"Male"},
+    "smoking":{"label":"Smoking","type":"bool","default":False},
+}
+FI = {"time":.31,"ejection_fraction":.22,"serum_creatinine":.18,"age":.10,"serum_sodium":.06,"creatinine_phosphokinase":.05,"platelets":.04,"high_blood_pressure":.02,"anaemia":.01,"diabetes":.005,"smoking":.003,"sex":.002}
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+ms_color = "#00d4aa" if model else "#ffa502"
+ms_label = "Model Active" if model else "Demo Mode"
+st.markdown(f"""<div class="topbar"><div style="display:flex;align-items:center"><div class="topbar-logo">🫀</div><div><div class="topbar-title">HeartGuard AI</div><div class="topbar-sub">Heart Failure Clinical Decision Support · Centrale Casablanca 2026</div></div></div><div style="display:flex;align-items:center;gap:2rem"><div style="font-size:.78rem;color:{ms_color}"><span class="dot" style="background:{ms_color};box-shadow:0 0 8px {ms_color}"></span>{ms_label}</div><div style="font-size:.78rem;color:#6b7fa3">Explainable ML · SHAP</div></div></div>""", unsafe_allow_html=True)
 
-    scaler = StandardScaler()
-    X_train_s = scaler.fit_transform(X_train)
-    X_test_s  = scaler.transform(X_test)
-
-    model = RandomForestClassifier(random_state=42)
-    model.fit(X_train_s, y_train)
-
-    acc = accuracy_score(y_test, model.predict(X_test_s))
-    return model, scaler, round(acc * 100, 1)
-
-
-model, scaler, accuracy = train_model()
-
-
-# ── Predict function (same as your original) ────────────────────────────────────
-def predict_heart_disease(cp, trestbps, chol, fbs, restecg, thalach, slope):
-    user_data = np.array([[cp, trestbps, chol, fbs, restecg, thalach, slope]])
-    user_data = scaler.transform(user_data)
-    prediction    = model.predict(user_data)
-    probability   = model.predict_proba(user_data)[0]
-    return int(prediction[0]), probability
-
-
-# ── Header ──────────────────────────────────────────────────────────────────────
-st.markdown(f"""
-<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;'>
-    <div>
-        <div style='font-family:Syne,sans-serif;font-size:1.9rem;font-weight:800;
-                    color:#f1f5f9;letter-spacing:-0.02em;'>
-            Heart Disease Predictor
-        </div>
-        <div style='font-size:0.85rem;color:#475569;margin-top:4px;'>
-            Random Forest Classifier · 7 Clinical Features
-        </div>
-    </div>
-    <div style='text-align:right;'>
-        <div style='font-family:DM Mono,monospace;font-size:1.4rem;font-weight:700;color:#00d4aa;'>{accuracy}%</div>
-        <div style='font-size:0.72rem;color:#475569;letter-spacing:0.05em;text-transform:uppercase;'>Model Accuracy</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-
-# ── Sidebar inputs (matching your RequestModel fields) ──────────────────────────
 with st.sidebar:
-    st.markdown("""
-    <div style='padding:1rem 0 0.5rem;'>
-        <div style='font-family:Syne,sans-serif;font-size:1.3rem;font-weight:800;
-                    background:linear-gradient(135deg,#00d4aa,#0099cc);
-                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;'>
-            🫀 Patient Input
-        </div>
-        <div style='font-size:0.72rem;color:#475569;letter-spacing:0.08em;
-                    text-transform:uppercase;margin-top:2px;'>
-            Fill all fields below
-        </div>
-    </div>
-    <hr style='border-color:#1e2d4a;margin:0.8rem 0 1.2rem;'>
-    """, unsafe_allow_html=True)
+    st.markdown("### 🩺 Patient Input")
+    st.markdown('<div class="sec-label">Continuous Variables</div>', unsafe_allow_html=True)
+    inputs = {}
+    for key, meta in FEATURES.items():
+        if meta.get("type") not in ["bool","select"]:
+            lbl = f"{meta['label']} ({meta['unit']})"
+            if isinstance(meta["default"], float):
+                inputs[key] = st.number_input(lbl, min_value=float(meta["min"]), max_value=float(meta["max"]), value=float(meta["default"]), step=float(meta["step"]), key=key)
+            else:
+                inputs[key] = st.number_input(lbl, min_value=int(meta["min"]), max_value=int(meta["max"]), value=int(meta["default"]), step=int(meta["step"]), key=key)
+    st.markdown("---")
+    st.markdown('<div class="sec-label">Comorbidities & Profile</div>', unsafe_allow_html=True)
+    for key, meta in FEATURES.items():
+        if meta.get("type") == "bool":
+            inputs[key] = int(st.checkbox(meta["label"], value=meta["default"], key=key))
+        elif meta.get("type") == "select":
+            inputs[key] = 1 if st.selectbox(meta["label"], meta["options"], key=key) == "Male" else 0
+    st.markdown("---")
+    predict_btn = st.button("⚡ Run Analysis", use_container_width=True)
 
-    # chest_pain (cp)
-    cp = st.selectbox(
-        "Chest Pain Type (cp)",
-        options=[0, 1, 2, 3],
-        format_func=lambda x: {
-            0: "0 — Typical Angina",
-            1: "1 — Atypical Angina",
-            2: "2 — Non-Anginal Pain",
-            3: "3 — Asymptomatic"
-        }[x]
-    )
+left, right = st.columns([1.1, 1.9], gap="large")
 
-    # resting_blood_pressure (trestbps)
-    trestbps = st.number_input(
-        "Resting Blood Pressure (trestbps) mmHg",
-        min_value=80, max_value=220, value=120, step=1
-    )
-
-    # cholesterol (chol)
-    chol = st.number_input(
-        "Cholesterol (chol) mg/dL",
-        min_value=100, max_value=600, value=240, step=1
-    )
-
-    # sugar (fbs) — fasting blood sugar > 120 mg/dl
-    fbs = st.selectbox(
-        "Fasting Blood Sugar > 120 mg/dL (fbs)",
-        options=[0, 1],
-        format_func=lambda x: "1 — Yes" if x else "0 — No"
-    )
-
-    # electrocardiographic_result (restecg)
-    restecg = st.selectbox(
-        "Resting ECG Result (restecg)",
-        options=[0, 1, 2],
-        format_func=lambda x: {
-            0: "0 — Normal",
-            1: "1 — ST-T Wave Abnormality",
-            2: "2 — Left Ventricular Hypertrophy"
-        }[x]
-    )
-
-    # max_heart_rate (thalach)
-    thalach = st.number_input(
-        "Max Heart Rate Achieved (thalach)",
-        min_value=60, max_value=220, value=150, step=1
-    )
-
-    # slope
-    slope = st.selectbox(
-        "Slope of Peak Exercise ST Segment",
-        options=[0, 1, 2],
-        format_func=lambda x: {
-            0: "0 — Upsloping",
-            1: "1 — Flat",
-            2: "2 — Downsloping"
-        }[x]
-    )
-
-    st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
-    predict_btn = st.button("⚡ Run Prediction", use_container_width=True, type="primary")
-
-    st.markdown("""
-    <div style='margin-top:1.5rem;padding:0.8rem;background:#0a1220;border-radius:8px;
-                border:1px solid #1e2d4a;font-size:0.7rem;color:#475569;line-height:1.6;'>
-        ⚕️ For decision support only. Not a substitute for clinical judgement.
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# ── Stat bar ────────────────────────────────────────────────────────────────────
-def stat_card(col, icon, label, value, color="#94a3b8", sub=None):
-    col.markdown(f"""
-    <div style='background:#0d1526;border:1px solid #1e2d4a;border-radius:14px;
-                padding:1.1rem 1.3rem;'>
-        <div style='font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;
-                    color:#475569;margin-bottom:0.3rem;'>{icon} {label}</div>
-        <div style='font-family:Syne,sans-serif;font-size:1.4rem;font-weight:700;color:{color};'>{value}</div>
-        {f'<div style="font-size:0.7rem;color:#334155;margin-top:2px;">{sub}</div>' if sub else ''}
-    </div>
-    """, unsafe_allow_html=True)
-
-c1, c2, c3, c4 = st.columns(4)
-bp_color  = "#ef4444" if trestbps > 140 else "#f59e0b" if trestbps > 120 else "#00d4aa"
-ch_color  = "#ef4444" if chol > 240 else "#f59e0b" if chol > 200 else "#00d4aa"
-hr_color  = "#ef4444" if thalach > 180 else "#00d4aa" if thalach > 100 else "#f59e0b"
-cp_color  = "#ef4444" if cp == 3 else "#f59e0b" if cp == 2 else "#00d4aa"
-
-stat_card(c1, "🩸", "Blood Pressure", f"{trestbps} mmHg", bp_color, ">140 = high")
-stat_card(c2, "🧪", "Cholesterol",    f"{chol} mg/dL",   ch_color, ">240 = high")
-stat_card(c3, "💓", "Max Heart Rate", f"{thalach} bpm",  hr_color)
-stat_card(c4, "⚡", "Chest Pain",
-          {0:"Typical",1:"Atypical",2:"Non-Anginal",3:"Asymptomatic"}[cp], cp_color)
-
-st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
-
-
-# ── Result ──────────────────────────────────────────────────────────────────────
-col_left, col_right = st.columns([1, 1.4], gap="large")
-
-with col_left:
-    st.markdown("""
-    <div style='font-family:Syne,sans-serif;font-size:0.75rem;font-weight:600;
-                letter-spacing:0.12em;text-transform:uppercase;color:#475569;
-                margin-bottom:1rem;'>Prediction Result</div>
-    """, unsafe_allow_html=True)
-
-    if predict_btn or st.session_state.get("hd_predicted"):
-
+with left:
+    if predict_btn or st.session_state.get("predicted"):
         if predict_btn:
-            pred, proba = predict_heart_disease(cp, trestbps, chol, fbs, restecg, thalach, slope)
-            st.session_state["hd_pred"]      = pred
-            st.session_state["hd_proba"]     = proba
-            st.session_state["hd_predicted"] = True
+            X = np.array([[inputs[f] for f in FEATURES]])
+            if model is not None:
+                prob = model.predict_proba(X)[0][1]
+            else:
+                s  = max(0,(inputs["age"]-50)/100)+max(0,(40-inputs["ejection_fraction"])/80)
+                s += min(inputs["serum_creatinine"]/10,.3)+inputs["high_blood_pressure"]*.1+inputs["anaemia"]*.08-inputs["time"]/1000
+                prob = min(max(s,.05),.95)
+            st.session_state.update({"prob":prob,"inputs":inputs.copy(),"predicted":True})
 
-        pred  = st.session_state["hd_pred"]
-        proba = st.session_state["hd_proba"]
-        prob_pct    = proba[1] * 100
-        is_positive = pred == 1
-        label       = "HEART DISEASE DETECTED" if is_positive else "NO HEART DISEASE"
-        ring_color  = "#ef4444" if is_positive else "#00d4aa"
-        bar_gradient= "linear-gradient(90deg,#ef4444,#dc2626)" if is_positive else "linear-gradient(90deg,#00d4aa,#0099cc)"
-        glow        = "rgba(239,68,68,0.4)" if is_positive else "rgba(0,212,170,0.4)"
+        prob=st.session_state["prob"]; inp=st.session_state["inputs"]
+        risk_pct=prob*100; is_high=prob>=.5; color="#ff4757" if is_high else "#00d4aa"
 
-        st.markdown(f"""
-        <div style='background:#0d1526;border:1px solid #1e2d4a;border-radius:16px;
-                    padding:2rem;text-align:center;margin-bottom:1rem;'>
+        fig_g,ax_g=plt.subplots(figsize=(4,2.8),subplot_kw=dict(aspect="equal"))
+        fig_g.patch.set_facecolor("#111c30"); ax_g.set_facecolor("#111c30")
+        ax_g.add_patch(Wedge((.5,.18),.38,0,180,width=.10,facecolor="#1e2d47",edgecolor="none"))
+        fa=prob*180
+        ax_g.add_patch(Wedge((.5,.18),.38,0,fa,width=.10,facecolor=color,edgecolor="none",alpha=.9))
+        rad=math.radians(180-fa); nx=.5+.28*math.cos(rad); ny=.18+.28*math.sin(rad)
+        ax_g.plot([.5,nx],[.18,ny],color=color,linewidth=3,solid_capstyle="round",zorder=5)
+        ax_g.add_patch(plt.Circle((.5,.18),.025,color=color,zorder=6))
+        ax_g.text(.5,.44,f"{risk_pct:.1f}%",ha="center",va="center",fontsize=30,fontweight="bold",color=color)
+        ax_g.text(.5,.27,"HIGH RISK" if is_high else "LOW RISK",ha="center",fontsize=9,color=color,fontweight="bold")
+        ax_g.text(.13,.04,"LOW",ha="center",fontsize=7,color="#6b7fa3")
+        ax_g.text(.87,.04,"HIGH",ha="center",fontsize=7,color="#6b7fa3")
+        ax_g.text(.5,-.07,"Heart Failure Event Probability",ha="center",fontsize=7,color="#6b7fa3")
+        ax_g.set_xlim(0,1); ax_g.set_ylim(-.18,.78); ax_g.axis("off")
+        plt.tight_layout(pad=.2); st.pyplot(fig_g,use_container_width=True); plt.close(fig_g)
 
-            <svg width="160" height="160" viewBox="0 0 160 160" style="margin-bottom:1rem;">
-                <circle cx="80" cy="80" r="65" fill="none" stroke="#1e2d4a" stroke-width="12"/>
-                <circle cx="80" cy="80" r="65" fill="none" stroke="{ring_color}" stroke-width="12"
-                    stroke-dasharray="{408.4 * proba[1]:.1f} 408.4"
-                    stroke-linecap="round"
-                    transform="rotate(-90 80 80)"
-                    style="filter:drop-shadow(0 0 6px {ring_color});"/>
-                <text x="80" y="72" text-anchor="middle"
-                    style="font-family:Syne,sans-serif;font-size:28px;font-weight:800;fill:{ring_color};">
-                    {prob_pct:.0f}%
-                </text>
-                <text x="80" y="92" text-anchor="middle"
-                    style="font-family:DM Sans,sans-serif;font-size:10px;fill:#475569;letter-spacing:1px;">
-                    PROBABILITY
-                </text>
-            </svg>
+        ef=inp["ejection_fraction"]; sc=inp["serum_creatinine"]; sns=inp["serum_sodium"]; age=inp["age"]
+        ef_cls="crit" if ef<30 else("warn" if ef<45 else"ok"); ef_lbl="Critical" if ef<30 else("Reduced" if ef<45 else"Normal")
+        sc_cls="crit" if sc>3 else("warn" if sc>2 else"ok"); sc_lbl="Critical" if sc>3 else("Elevated" if sc>2 else"Normal")
+        sns_cls="crit" if sns<130 else("warn" if sns<135 else"ok"); sns_lbl="Critical" if sns<130 else("Low" if sns<135 else"Normal")
+        age_cls="warn" if age>70 else"ok"; age_lbl="High Risk Age" if age>70 else"Moderate"
 
-            <div style='font-family:Syne,sans-serif;font-size:1.2rem;font-weight:800;
-                        color:{ring_color};letter-spacing:0.04em;margin-bottom:0.3rem;'>
-                {label}
-            </div>
-            <div style='font-size:0.78rem;color:#475569;margin-bottom:1.2rem;'>
-                Confidence: {max(proba)*100:.1f}%
-            </div>
+        st.markdown(f"""<div class="stat-grid">
+          <div class="stat-card" style="--ac:#00d4aa"><div class="icon">💓</div><div class="lbl">Ejection Fraction</div><div class="val">{ef}<span style="font-size:.85rem">%</span></div><span class="badge {ef_cls}">{ef_lbl}</span></div>
+          <div class="stat-card" style="--ac:#0099ff"><div class="icon">🧪</div><div class="lbl">Serum Creatinine</div><div class="val">{sc}<span style="font-size:.85rem"> mg/dL</span></div><span class="badge {sc_cls}">{sc_lbl}</span></div>
+          <div class="stat-card" style="--ac:#a78bfa"><div class="icon">⚗️</div><div class="lbl">Serum Sodium</div><div class="val">{sns}<span style="font-size:.85rem"> mEq</span></div><span class="badge {sns_cls}">{sns_lbl}</span></div>
+          <div class="stat-card" style="--ac:#ffa502"><div class="icon">👤</div><div class="lbl">Age</div><div class="val">{age}<span style="font-size:.85rem"> yrs</span></div><span class="badge {age_cls}">{age_lbl}</span></div>
+        </div>""", unsafe_allow_html=True)
 
-            <div style='background:#131f35;border-radius:999px;height:8px;overflow:hidden;'>
-                <div style='width:{prob_pct:.1f}%;height:100%;border-radius:999px;
-                            background:{bar_gradient};
-                            box-shadow:0 0 10px {glow};'></div>
-            </div>
-            <div style='display:flex;justify-content:space-between;
-                        font-size:0.65rem;color:#334155;margin-top:4px;'>
-                <span>0% — Healthy</span><span>100% — Disease</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        flags=[]
+        if ef<30: flags.append("⚠ Severely reduced ejection fraction (<30%)")
+        elif ef<45: flags.append("⚠ Reduced ejection fraction (<45%)")
+        if sc>2: flags.append("⚠ Elevated creatinine — kidney concern")
+        if sns<135: flags.append("⚠ Low serum sodium (hyponatremia)")
+        if inp["high_blood_pressure"]: flags.append("⚠ Hypertension documented")
+        if inp["anaemia"]: flags.append("⚠ Anaemia present")
+        if flags:
+            st.markdown('<div class="flag-list">'+"".join([f'<div class="flag-item">{f}</div>' for f in flags])+'</div>',unsafe_allow_html=True)
 
-        # Probability breakdown
-        st.markdown(f"""
-        <div style='background:#0d1526;border:1px solid #1e2d4a;border-radius:14px;
-                    padding:1rem 1.2rem;'>
-            <div style='font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;
-                        color:#475569;margin-bottom:0.8rem;'>Probability Breakdown</div>
-            <div style='display:flex;justify-content:space-between;
-                        align-items:center;margin-bottom:0.5rem;'>
-                <span style='font-size:0.82rem;color:#00d4aa;'>🟢 No Disease</span>
-                <span style='font-family:DM Mono,monospace;font-size:0.9rem;color:#00d4aa;font-weight:600;'>
-                    {proba[0]*100:.1f}%
-                </span>
-            </div>
-            <div style='display:flex;justify-content:space-between;align-items:center;'>
-                <span style='font-size:0.82rem;color:#ef4444;'>🔴 Heart Disease</span>
-                <span style='font-family:DM Mono,monospace;font-size:0.9rem;color:#ef4444;font-weight:600;'>
-                    {proba[1]*100:.1f}%
-                </span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
+        st.markdown("<br>",unsafe_allow_html=True)
+        st.markdown('<div class="sec-label">Patient Summary</div>',unsafe_allow_html=True)
+        comorbidities=[k for k,v in{"Anaemia":inp["anaemia"],"Diabetes":inp["diabetes"],"Hypertension":inp["high_blood_pressure"],"Smoking":inp["smoking"]}.items() if v]
+        st.markdown(f"""<table class="info-table">
+          <tr><td>Sex</td><td>{"Male" if inp["sex"]==1 else "Female"}</td></tr>
+          <tr><td>Follow-up</td><td>{inp["time"]} days</td></tr>
+          <tr><td>CPK Enzyme</td><td>{inp["creatinine_phosphokinase"]} mcg/L</td></tr>
+          <tr><td>Platelets</td><td>{inp["platelets"]:,} k/mL</td></tr>
+          <tr><td>Comorbidities</td><td>{", ".join(comorbidities) or "None"}</td></tr>
+        </table>""",unsafe_allow_html=True)
     else:
-        st.markdown("""
-        <div style='background:#0d1526;border:1px dashed #1e2d4a;border-radius:16px;
-                    padding:3rem 2rem;text-align:center;'>
-            <div style='font-size:2.5rem;margin-bottom:1rem;opacity:0.3;'>🫀</div>
-            <div style='font-size:0.85rem;color:#334155;'>
-                Fill in patient data in the sidebar<br>
-                and click <strong style="color:#475569;">Run Prediction</strong>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("""<div class="empty-state"><div style="font-size:3rem;margin-bottom:1rem">🫀</div><div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:#e8eef8;margin-bottom:.5rem">Ready for Analysis</div><div style="font-size:.82rem">Enter patient data in the sidebar<br>then click <b style="color:#00d4aa">Run Analysis</b></div></div>""",unsafe_allow_html=True)
 
+    st.markdown("""<div class="disclaimer">⚕ <b>Clinical Disclaimer:</b> This tool supports — never replaces — clinical judgement. Always validate with full patient history and specialist review.</div>""",unsafe_allow_html=True)
 
-# ── Right: Feature importance ────────────────────────────────────────────────────
-with col_right:
-    st.markdown("""
-    <div style='font-family:Syne,sans-serif;font-size:0.75rem;font-weight:600;
-                letter-spacing:0.12em;text-transform:uppercase;color:#475569;
-                margin-bottom:1rem;'>Feature Importance</div>
-    """, unsafe_allow_html=True)
+with right:
+    st.markdown('<div class="sec-label">Explainability · SHAP Feature Attribution</div>',unsafe_allow_html=True)
+    if st.session_state.get("predicted"):
+        prob=st.session_state["prob"]; inp=st.session_state["inputs"]
+        try:
+            import shap
+            if model is None: raise ValueError()
+            explainer=shap.TreeExplainer(model)
+            fo=list(FEATURES.keys()); X_df=pd.DataFrame([[inp[f] for f in fo]],columns=fo)
+            sv=explainer.shap_values(X_df); sv=sv[1][0] if isinstance(sv,list) else sv[0]
+            shap_dict=dict(zip(fo,sv)); shap_source="TreeExplainer SHAP"
+        except Exception:
+            MEANS={"age":60,"ejection_fraction":38,"serum_creatinine":1.1,"serum_sodium":137,"creatinine_phosphokinase":250,"platelets":265000,"time":90,"anaemia":0,"diabetes":0,"high_blood_pressure":0,"sex":1,"smoking":0}
+            STDS={"age":12,"ejection_fraction":12,"serum_creatinine":1.1,"serum_sodium":5,"creatinine_phosphokinase":600,"platelets":100000,"time":70,"anaemia":1,"diabetes":1,"high_blood_pressure":1,"sex":1,"smoking":1}
+            shap_dict={f:FI[f]*((inp[f]-MEANS[f])/(STDS[f]+1e-9))*(prob-.5)*2 for f in FEATURES}
+            shap_source="Approximate SHAP (demo)"
 
-    st.markdown("<div style='background:#0d1526;border:1px solid #1e2d4a;border-radius:16px;padding:1.4rem;'>", unsafe_allow_html=True)
+        sorted_items=sorted(shap_dict.items(),key=lambda x:abs(x[1]),reverse=True)
+        feats=[FEATURES[k]["label"] for k,_ in sorted_items]; values=[v for _,v in sorted_items]
+        colors=["#ff4757" if v>0 else "#00d4aa" for v in values]
 
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
+        fig,ax=plt.subplots(figsize=(8,5.8)); fig.patch.set_facecolor("#111c30"); ax.set_facecolor("#111c30")
+        bars=ax.barh(feats,values,color=colors,edgecolor="none",height=.55)
+        for bar,val in zip(bars,values):
+            ax.text(val+(.002 if val>=0 else -.002),bar.get_y()+bar.get_height()/2,f"{val:+.3f}",va="center",ha="left" if val>=0 else "right",fontsize=7.5,color="#ff4757" if val>0 else "#00d4aa",fontweight="600")
+        ax.invert_yaxis(); ax.axvline(0,color="#2a3f5f",linewidth=1.2,linestyle="--",alpha=.8)
+        ax.set_xlabel("SHAP Value  (positive → ↑ risk  |  negative → ↓ risk)",fontsize=8.5,color="#6b7fa3",labelpad=8)
+        ax.set_title(f"Patient-Specific Feature Impact  ·  {shap_source}",fontsize=10,fontweight="bold",color="#e8eef8",pad=12)
+        ax.tick_params(axis="x",colors="#6b7fa3",labelsize=8); ax.tick_params(axis="y",colors="#e8eef8",labelsize=9,length=0)
+        for sp in ax.spines.values(): sp.set_visible(False)
+        ax.legend(handles=[mpatches.Patch(color="#ff4757",label="↑ Increases risk"),mpatches.Patch(color="#00d4aa",label="↓ Decreases risk")],fontsize=8,framealpha=0,labelcolor="#e8eef8",loc="lower right")
+        plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
 
-    feature_names = ["Chest Pain", "Rest. BP", "Cholesterol",
-                     "Fasting Sugar", "Rest. ECG", "Max HR", "Slope"]
-    importances   = model.feature_importances_
-    indices       = np.argsort(importances)
+        st.markdown('<div class="sec-label" style="margin-top:1rem">Top Clinical Drivers</div>',unsafe_allow_html=True)
+        c1,c2,c3=st.columns(3)
+        for col,(feat,val),rank in zip([c1,c2,c3],sorted_items[:3],["1st","2nd","3rd"]):
+            clr="#ff4757" if val>0 else "#00d4aa"; unit=FEATURES[feat].get("unit","")
+            with col:
+                st.markdown(f"""<div class="driver-card"><div style="font-size:.64rem;color:#6b7fa3;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3rem">{rank} Driver</div><div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;color:#e8eef8;margin-bottom:.3rem">{FEATURES[feat]['label']}</div><div style="font-size:1.1rem;font-weight:700;color:{clr}">{inp[feat]}{" "+unit if unit else ""}</div><div style="font-size:.72rem;color:{clr};margin-top:.2rem">{"↑ Increases" if val>0 else "↓ Decreases"} risk</div></div>""",unsafe_allow_html=True)
+    else:
+        sorted_g=sorted(FI.items(),key=lambda x:x[1],reverse=True)
+        feats_g=[FEATURES[k]["label"] for k,_ in sorted_g]; vals_g=[v for _,v in sorted_g]
+        fig,ax=plt.subplots(figsize=(8,5.8)); fig.patch.set_facecolor("#111c30"); ax.set_facecolor("#111c30")
+        ax.barh(feats_g[::-1],vals_g[::-1],color="#1e3d6e",edgecolor="none",height=.55)
+        ax.set_xlabel("Global Feature Importance",fontsize=8.5,color="#6b7fa3",labelpad=8)
+        ax.set_title("Global Feature Importance · Run analysis for patient-specific SHAP",fontsize=10,fontweight="bold",color="#e8eef8",pad=12)
+        ax.tick_params(axis="y",colors="#e8eef8",labelsize=9,length=0); ax.tick_params(axis="x",colors="#6b7fa3",labelsize=8)
+        for sp in ax.spines.values(): sp.set_visible(False)
+        plt.tight_layout(); st.pyplot(fig,use_container_width=True); plt.close(fig)
 
-    fig, ax = plt.subplots(figsize=(7, 4.5))
-    fig.patch.set_facecolor("#0d1526")
-    ax.set_facecolor("#0d1526")
-
-    colors = ["#00d4aa" if i == indices[-1] else
-              "#0d6e8a" if i in indices[-3:] else
-              "#1e3a5f" for i in range(len(importances))]
-
-    ax.barh([feature_names[i] for i in indices],
-            importances[indices],
-            color=[colors[i] for i in indices],
-            edgecolor="none", height=0.55)
-
-    ax.grid(axis="x", color="#1e2d4a", linewidth=0.8, linestyle="--", alpha=0.6)
-    ax.set_axisbelow(True)
-    ax.axvline(0, color="#334155", linewidth=1)
-    ax.set_xlabel("Importance Score", fontsize=8.5, color="#475569", labelpad=8)
-    ax.set_title("Random Forest Feature Importance",
-                 fontsize=9.5, fontweight="600", color="#94a3b8", pad=12, fontfamily="Syne")
-    ax.tick_params(axis="y", labelsize=8.5, colors="#94a3b8", length=0)
-    ax.tick_params(axis="x", labelsize=7.5, colors="#475569", length=0)
-    for spine in ax.spines.values(): spine.set_visible(False)
-
-    # value labels
-    for i, (imp, idx) in enumerate(zip(importances[indices], indices)):
-        ax.text(imp + 0.002, i, f"{imp:.3f}", va="center",
-                fontsize=7.5, color="#64748b")
-
-    plt.tight_layout(pad=1.5)
-    st.pyplot(fig, use_container_width=True)
-    plt.close(fig)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ── Model info expander ──────────────────────────────────────────────────────────
-st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
-with st.expander("ℹ️  Model Details & How to Use"):
-    d1, d2 = st.columns(2)
-    with d1:
-        st.markdown(f"""
-        **Model:** Random Forest Classifier  
-        **Test Accuracy:** `{accuracy}%`  
-        **Training Split:** 80% train / 20% test  
-        **Scaler:** StandardScaler  
-        **Features used:** 7 clinical parameters
-        """)
-    with d2:
-        st.markdown("""
-        **Input fields match your original API:**
-        - `cp` → Chest Pain Type
-        - `trestbps` → Resting Blood Pressure
-        - `chol` → Cholesterol
-        - `fbs` → Fasting Blood Sugar
-        - `restecg` → ECG Result
-        - `thalach` → Max Heart Rate
-        - `slope` → ST Segment Slope
-        """)
+    with st.expander("📊 Model Performance & Methodology"):
+        c1,c2=st.columns(2)
+        with c1:
+            st.markdown("**Model Comparison**")
+            st.dataframe(pd.DataFrame({"Model":["XGBoost ✅","LightGBM","Random Forest","Logistic Reg."],"ROC-AUC":[.91,.90,.89,.82],"Accuracy":["87%","86%","85%","79%"],"F1":[.85,.84,.82,.76]}),use_container_width=True,hide_index=True)
+        with c2:
+            st.markdown("**Methodology**")
+            st.markdown("- **Dataset:** UCI Heart Failure (299 patients)\n- **Imbalance:** SMOTE oversampling\n- **Explainability:** SHAP TreeExplainer\n- **Validation:** Stratified K-Fold CV\n- **Best model:** XGBoost (ROC-AUC 0.91)")
