@@ -16,16 +16,56 @@ st.markdown("""
 
 html, body, [class*="css"], .stApp {
     font-family: 'DM Sans', sans-serif;
-    background-color: #080e1a !important;
     color: #e2e8f0;
 }
+
+/* ── Medical background image with dark overlay ── */
+.stApp {
+    background:
+        linear-gradient(135deg,
+            rgba(8,14,26,0.93) 0%,
+            rgba(8,14,26,0.78) 50%,
+            rgba(8,14,26,0.93) 100%),
+        url("https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=1600&q=80")
+        center center / cover no-repeat fixed !important;
+}
+
+/* Red glow left */
+.stApp::before {
+    content: '';
+    position: fixed; top: 0; left: 0;
+    width: 45%; height: 100%;
+    background: radial-gradient(ellipse at 0% 50%,
+        rgba(180,20,20,0.22) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+}
+
+/* Blue glow right */
+.stApp::after {
+    content: '';
+    position: fixed; top: 0; right: 0;
+    width: 50%; height: 100%;
+    background: radial-gradient(ellipse at 100% 50%,
+        rgba(0,140,210,0.20) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+}
+
+.block-container { position: relative; z-index: 1; }
 #MainMenu, footer, header { visibility: hidden; }
 [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none !important; }
 .block-container { padding: 2rem 2.5rem 4rem !important; max-width: 1300px !important; }
 
+/* Glass card effect */
+[data-testid="stExpander"],
+div[style*="background:#0d1526"] {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+}
+
 /* Expander — make it look like a panel toggle */
 .streamlit-expanderHeader {
-    background: #0d1526 !important;
+    background: rgba(13,21,38,0.85) !important;
+    backdrop-filter: blur(12px) !important;
     border: 1px solid #00d4aa !important;
     border-radius: 12px !important;
     font-family: 'Syne', sans-serif !important;
@@ -160,7 +200,8 @@ st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
 # ── Stat bar (updates live as inputs change) ────────────────────────────────────
 def stat_card(col, icon, label, value, color, sub=None):
     col.markdown(f"""
-    <div style='background:#0d1526;border:1px solid #1e2d4a;border-radius:14px;padding:1.1rem 1.3rem;'>
+    <div style='background:rgba(13,21,38,0.82);border:1px solid #1e2d4a;border-radius:14px;
+                padding:1.1rem 1.3rem;backdrop-filter:blur(12px);'>
         <div style='font-size:0.67rem;letter-spacing:0.1em;text-transform:uppercase;
                     color:#475569;margin-bottom:0.3rem;'>{icon} {label}</div>
         <div style='font-family:Syne,sans-serif;font-size:1.35rem;font-weight:700;color:{color};'>{value}</div>
@@ -199,8 +240,8 @@ with col_l:
         lbl   = "HEART DISEASE DETECTED" if pos else "NO HEART DISEASE"
 
         st.markdown(f"""
-        <div style='background:#0d1526;border:1px solid #1e2d4a;border-radius:16px;
-                    padding:2rem;text-align:center;margin-bottom:1rem;'>
+        <div style='background:rgba(13,21,38,0.82);border:1px solid #1e2d4a;border-radius:16px;
+                    padding:2rem;text-align:center;margin-bottom:1rem;backdrop-filter:blur(12px);'>
             <svg width="150" height="150" viewBox="0 0 160 160" style="margin-bottom:0.8rem;">
                 <circle cx="80" cy="80" r="65" fill="none" stroke="#1e2d4a" stroke-width="12"/>
                 <circle cx="80" cy="80" r="65" fill="none" stroke="{rc}" stroke-width="12"
@@ -224,7 +265,8 @@ with col_l:
                         font-size:0.63rem;color:#334155;margin-top:4px;'>
                 <span>0% — Healthy</span><span>100% — Disease</span></div>
         </div>
-        <div style='background:#0d1526;border:1px solid #1e2d4a;border-radius:14px;padding:1rem 1.2rem;'>
+        <div style='background:rgba(13,21,38,0.82);border:1px solid #1e2d4a;border-radius:14px;
+                    padding:1rem 1.2rem;backdrop-filter:blur(12px);'>
             <div style='font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;
                         color:#475569;margin-bottom:0.8rem;'>Probability Breakdown</div>
             <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;'>
@@ -240,8 +282,8 @@ with col_l:
         </div>""", unsafe_allow_html=True)
     else:
         st.markdown("""
-        <div style='background:#0d1526;border:1px dashed #1e2d4a;border-radius:16px;
-                    padding:3.5rem 2rem;text-align:center;'>
+        <div style='background:rgba(13,21,38,0.75);border:1px dashed #1e2d4a;border-radius:16px;
+                    padding:3.5rem 2rem;text-align:center;backdrop-filter:blur(12px);'>
             <div style='font-size:2.5rem;margin-bottom:1rem;opacity:0.2;'>🫀</div>
             <div style='font-size:0.85rem;color:#334155;'>
                 Open the panel above ↑<br>fill in patient data<br>
@@ -254,7 +296,7 @@ with col_r:
         letter-spacing:0.12em;text-transform:uppercase;color:#475569;margin-bottom:1rem;'>
         Feature Importance</div>""", unsafe_allow_html=True)
 
-    st.markdown("<div style='background:#0d1526;border:1px solid #1e2d4a;border-radius:16px;padding:1.4rem;'>", unsafe_allow_html=True)
+    st.markdown("<div style='background:rgba(13,21,38,0.82);border:1px solid #1e2d4a;border-radius:16px;padding:1.4rem;backdrop-filter:blur(12px);'>", unsafe_allow_html=True)
 
     fn  = ["Chest Pain","Rest. BP","Cholesterol","Fasting Sugar","Rest. ECG","Max HR","Slope"]
     imp = model.feature_importances_
@@ -263,7 +305,8 @@ with col_r:
             for i in range(len(imp))]
 
     fig, ax = plt.subplots(figsize=(7, 4.5))
-    fig.patch.set_facecolor("#0d1526"); ax.set_facecolor("#0d1526")
+    fig.patch.set_facecolor("#0d1526"); fig.patch.set_alpha(0.0)
+    ax.set_facecolor("#0d1526"); ax.patch.set_alpha(0.0)
     ax.barh([fn[i] for i in idx], imp[idx], color=[clrs[i] for i in idx],
             edgecolor="none", height=0.55)
     for i, v in enumerate(imp[idx]):
