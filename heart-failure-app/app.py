@@ -100,22 +100,22 @@ def train_model():
             continue
     if data is None:
         st.warning("⚠️ Dataset non trouvé — mode démo actif avec données synthétiques.")
-            np.random.seed(42); n = 406
-            data = pd.DataFrame({
-                "age": np.random.randint(40,85,n).astype(float),
-                "anaemia": np.random.randint(0,2,n),
-                "creatinine_phosphokinase": np.random.randint(23,7862,n),
-                "diabetes": np.random.randint(0,2,n),
-                "ejection_fraction": np.random.randint(14,81,n),
-                "high_blood_pressure": np.random.randint(0,2,n),
-                "platelets": np.random.uniform(25000,850000,n),
-                "serum_creatinine": np.random.uniform(0.5,9.4,n),
-                "serum_sodium": np.random.randint(113,148,n),
-                "sex": np.random.randint(0,2,n),
-                "smoking": np.random.randint(0,2,n),
-                "time": np.random.randint(4,285,n),
-                "DEATH_EVENT": np.random.randint(0,2,n),
-            })
+        np.random.seed(42); n = 406
+        data = pd.DataFrame({
+            "age": np.random.randint(40,85,n).astype(float),
+            "anaemia": np.random.randint(0,2,n),
+            "creatinine_phosphokinase": np.random.randint(23,7862,n),
+            "diabetes": np.random.randint(0,2,n),
+            "ejection_fraction": np.random.randint(14,81,n),
+            "high_blood_pressure": np.random.randint(0,2,n),
+            "platelets": np.random.uniform(25000,850000,n),
+            "serum_creatinine": np.random.uniform(0.5,9.4,n),
+            "serum_sodium": np.random.randint(113,148,n),
+            "sex": np.random.randint(0,2,n),
+            "smoking": np.random.randint(0,2,n),
+            "time": np.random.randint(4,285,n),
+            "DEATH_EVENT": np.random.randint(0,2,n),
+        })
 
     FEATURES = ["age","anaemia","creatinine_phosphokinase","diabetes",
                 "ejection_fraction","high_blood_pressure","platelets",
