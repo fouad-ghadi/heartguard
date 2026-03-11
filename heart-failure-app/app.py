@@ -84,15 +84,22 @@ label {{ color: #94a3b8 !important; font-size: 0.8rem !important; }}
 # ── Train model ─────────────────────────────────────────────────────────────────
 @st.cache_resource
 def train_model():
-    DATA_PATH = os.path.join(os.path.dirname(__file__), "nouvelle_dataset_equilibrée.csv")
-    try:
-        data = pd.read_csv(DATA_PATH)
-    except FileNotFoundError:
-        # fallback: try same directory without accent
+    base = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(base, "nouvelle_dataset_equilibree.csv"),
+        os.path.join(base, "nouvelle_dataset_equilibrée.csv"),
+        "nouvelle_dataset_equilibree.csv",
+        "nouvelle_dataset_equilibrée.csv",
+    ]
+    data = None
+    for path in candidates:
         try:
-            data = pd.read_csv(os.path.join(os.path.dirname(__file__), "nouvelle_dataset_equilibree.csv"))
-        except FileNotFoundError:
-            st.warning("⚠️ Dataset non trouvé — mode démo actif avec données synthétiques.")
+            data = pd.read_csv(path)
+            break
+        except (FileNotFoundError, UnicodeDecodeError):
+            continue
+    if data is None:
+        st.warning("⚠️ Dataset non trouvé — mode démo actif avec données synthétiques.")
             np.random.seed(42); n = 406
             data = pd.DataFrame({
                 "age": np.random.randint(40,85,n).astype(float),
