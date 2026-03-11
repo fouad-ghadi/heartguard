@@ -1,111 +1,113 @@
-"""
-train_model.py
-Trains and evaluates multiple ML models, selects the best, and saves it.
-"""
-
-import os
-import sys
-import joblib
-import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
-from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score, f1_score
-from sklearn.linear_model import LogisticRegression
+import numpy as np
+import joblib
+import os
 from sklearn.ensemble import RandomForestClassifier
-from imblearn.over_sampling import SMOTE
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, roc_auc_score, f1_score
 
-# Optional heavy models — graceful fallback if not installed
-try:
-    from xgboost import XGBClassifier
-    HAS_XGB = True
-except ImportError:
-    HAS_XGB = False
-    print("XGBoost not installed — skipping.")
+# ═══════════════════════════════════════════════════
+#  ÉTAPE 1 — ENTRAÎNEMENT DU MODÈLE
+# ═══════════════════════════════════════════════════
 
-try:
-    from lightgbm import LGBMClassifier
-    HAS_LGB = True
-except ImportError:
-    HAS_LGB = False
-    print("LightGBM not installed — skipping.")
+def entrainer_modele():
+    # Charger les données
+    df = pd.read_csv('nouvelle_dataset_equilibrée.csv')
+    print(f"✅ Dataset chargé : {len(df)} patients")
+    print(f"   Survivants : {(df['DEATH_EVENT']==0).sum()}")
+    print(f"   Décédés    : {(df['DEATH_EVENT']==1).sum()}")
 
-sys.path.insert(0, os.path.dirname(__file__))
-from data_processing import load_data, optimize_memory, handle_missing_values, handle_outliers, get_feature_target, scale_features
+    # Séparer features et cible
+    X = df.drop('DEATH_EVENT', axis=1)
+    y = df['DEATH_EVENT']
 
-DATA_PATH  = os.path.join(os.path.dirname(__file__), "..", "data", "heart_failure_clinical_records_dataset.csv")
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "model.joblib")
-SCALER_PATH= os.path.join(os.path.dirname(__file__), "..", "models", "scaler.joblib")
-os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-
-
-def evaluate(name, model, X_test, y_test):
-    preds = model.predict(X_test)
-    probs = model.predict_proba(X_test)[:, 1]
-    metrics = {
-        "ROC-AUC":   round(roc_auc_score(y_test, probs), 4),
-        "Accuracy":  round(accuracy_score(y_test, preds), 4),
-        "Precision": round(precision_score(y_test, preds), 4),
-        "Recall":    round(recall_score(y_test, preds), 4),
-        "F1":        round(f1_score(y_test, preds), 4),
-    }
-    print(f"\n── {name} ──")
-    for k, v in metrics.items():
-        print(f"   {k}: {v}")
-    return metrics
-
-
-def train():
-    print("Loading & preprocessing data...")
-    df = load_data(DATA_PATH)
-    df = optimize_memory(df)
-    df = handle_missing_values(df)
-
-    continuous_cols = ["age", "creatinine_phosphokinase", "ejection_fraction",
-                       "platelets", "serum_creatinine", "serum_sodium", "time"]
-    df = handle_outliers(df, continuous_cols, method="clip")
-
-    X, y = get_feature_target(df)
-    print(f"Class distribution:\n{y.value_counts(normalize=True).round(2)}")
-
+    # Split 80% train / 20% test
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y)
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
 
-    # Handle class imbalance with SMOTE
-    print("\nApplying SMOTE to training set...")
-    smote = SMOTE(random_state=42)
-    X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
+    # Créer et entraîner le modèle
+    modele = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=10,
+        random_state=42
+    )
+    modele.fit(X_train, y_train)
 
-    X_train_s, X_test_s, scaler = scale_features(
-        pd.DataFrame(X_train_res, columns=X.columns),
-        X_test)
+    # Évaluer le modèle
+    y_pred       = modele.predict(X_test)
+    y_pred_proba = modele.predict_proba(X_test)[:, 1]
 
-    models = {
-        "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
-        "Random Forest":       RandomForestClassifier(n_estimators=200, random_state=42),
-    }
-    if HAS_XGB:
-        models["XGBoost"] = XGBClassifier(n_estimators=200, use_label_encoder=False,
-                                           eval_metric="logloss", random_state=42)
-    if HAS_LGB:
-        models["LightGBM"] = LGBMClassifier(n_estimators=200, random_state=42)
+    print(f"\n📊 Résultats du modèle :")
+    print(f"   Accuracy  : {accuracy_score(y_test, y_pred)*100:.2f}%")
+    print(f"   ROC-AUC   : {roc_auc_score(y_test, y_pred_proba):.4f}")
+    print(f"   F1-Score  : {f1_score(y_test, y_pred):.4f}")
 
-    results = {}
-    trained = {}
-    for name, m in models.items():
-        m.fit(X_train_s, y_train_res)
-        results[name] = evaluate(name, m, X_test_s, y_test)
-        trained[name] = m
+    # Sauvegarder le modèle
+    os.makedirs('models', exist_ok=True)
+    joblib.dump(modele, 'models/random_forest.pkl')
+    print(f"\n💾 Modèle sauvegardé : models/random_forest.pkl")
 
-    # Select best by ROC-AUC
-    best_name = max(results, key=lambda n: results[n]["ROC-AUC"])
-    best_model = trained[best_name]
-    print(f"\n✅ Best model: {best_name} (ROC-AUC={results[best_name]['ROC-AUC']})")
+    return modele
 
-    joblib.dump(best_model, MODEL_PATH)
-    joblib.dump(scaler,     SCALER_PATH)
-    print(f"Model saved to {MODEL_PATH}")
-    print(f"Scaler saved to {SCALER_PATH}")
 
+# ═══════════════════════════════════════════════════
+#  ÉTAPE 2 — FONCTION DE PRÉDICTION
+# ═══════════════════════════════════════════════════
+
+def prediction(age, anaemia, creatinine_phosphokinase, diabetes,
+               ejection_fraction, high_blood_pressure, platelets,
+               serum_creatinine, serum_sodium, sex, smoking, time):
+
+    modele = joblib.load('models/random_forest.pkl')
+
+    patient = pd.DataFrame([{
+        'age': age, 'anaemia': anaemia,
+        'creatinine_phosphokinase': creatinine_phosphokinase,
+        'diabetes': diabetes, 'ejection_fraction': ejection_fraction,
+        'high_blood_pressure': high_blood_pressure, 'platelets': platelets,
+        'serum_creatinine': serum_creatinine, 'serum_sodium': serum_sodium,
+        'sex': sex, 'smoking': smoking, 'time': time
+    }])
+
+    probabilites       = modele.predict_proba(patient)[0]
+    pourcentage_risque = round(probabilites[1] * 100, 2)
+
+    if pourcentage_risque >= 70:   diagnostic = "⚠️  RISQUE ÉLEVÉ"
+    elif pourcentage_risque >= 40: diagnostic = "⚡ RISQUE MODÉRÉ"
+    else:                          diagnostic = "✅ FAIBLE RISQUE"
+
+    print(f"\n{'═'*45}")
+    print(f"  🫀 RÉSULTAT DE PRÉDICTION")
+    print(f"{'═'*45}")
+    print(f"  Probabilité de survie       : {round(probabilites[0]*100, 2)}%")
+    print(f"  Probabilité d'insuffisance  : {pourcentage_risque}%")
+    print(f"  Diagnostic                  : {diagnostic}")
+    print(f"{'═'*45}")
+
+    return pourcentage_risque, diagnostic
+
+
+# ═══════════════════════════════════════════════════
+#  ÉTAPE 3 — PROGRAMME PRINCIPAL
+# ═══════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    train()
+
+    print("=" * 45)
+    print("  ENTRAÎNEMENT DU MODÈLE")
+    print("=" * 45)
+    entrainer_modele()
+
+    print("\n\n" + "=" * 45)
+    print("  EXEMPLES DE PRÉDICTIONS")
+    print("=" * 45)
+
+    print("\n👤 Patient 1 — Profil critique")
+    prediction(65, 0, 160, 1, 20, 0, 327000, 2.7, 116, 0, 0, 8)
+
+    print("\n👤 Patient 2 — Profil sain")
+    prediction(45, 0, 582, 0, 38, 0, 265000, 1.1, 136, 1, 0, 60)
+
+    print("\n👤 Patient 3 — Profil très critique")
+    prediction(80, 1, 123, 0, 35, 1, 388000, 9.4, 133, 1, 1, 10)
