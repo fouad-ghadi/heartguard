@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 import os
 
-st.set_page_config(page_title="Heart Disease Predictor", page_icon="🫀", layout="wide")
+st.set_page_config(page_title="Heart Disease Predictor", page_icon="❤️", layout="wide")
 
 st.markdown("""
 <style>
@@ -26,7 +26,7 @@ html, body, [class*="css"], .stApp {
             rgba(8,14,26,0.93) 0%,
             rgba(8,14,26,0.78) 50%,
             rgba(8,14,26,0.93) 100%),
-        url("https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=1600&q=80")
+        url("https://images.unsplash.com/photo-1628348068343-c6a848d2b6dd?w=1600&q=80")
         center center / cover no-repeat fixed !important;
 }
 
@@ -141,11 +141,24 @@ model, scaler, accuracy = train_model()
 # ── Header ──────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;'>
-    <div>
-        <div style='font-family:Syne,sans-serif;font-size:2rem;font-weight:800;
-                    color:#f1f5f9;letter-spacing:-0.02em;'>🫀 Heart Disease Predictor</div>
-        <div style='font-size:0.85rem;color:#475569;margin-top:4px;'>
-            Random Forest Classifier · 7 Clinical Features</div>
+    <div style='display:flex;align-items:center;gap:1rem;'>
+        <div style='width:54px;height:54px;background:linear-gradient(135deg,#c0392b,#e74c3c);
+                    border-radius:14px;display:flex;align-items:center;justify-content:center;
+                    box-shadow:0 0 20px rgba(192,57,43,0.5);flex-shrink:0;'>
+            <svg width="30" height="28" viewBox="0 0 30 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 26S2 17.5 2 8.5C2 5 4.5 2 8 2c2.5 0 4.8 1.4 6.2 3.5L15 7l0.8-1.5C17.2 3.4 19.5 2 22 2c3.5 0 6 3 6 6.5C28 17.5 15 26 15 26Z"
+                    fill="white" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                <path d="M8 10 L12 14 L15 11 L18 16 L22 12"
+                    stroke="rgba(192,57,43,0.7)" stroke-width="1.8"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+        </div>
+        <div>
+            <div style='font-family:Syne,sans-serif;font-size:2rem;font-weight:800;
+                        color:#f1f5f9;letter-spacing:-0.02em;'>Heart Disease Predictor</div>
+            <div style='font-size:0.85rem;color:#475569;margin-top:2px;'>
+                Random Forest Classifier · 7 Clinical Features</div>
+        </div>
     </div>
     <div style='text-align:right;'>
         <div style='font-family:DM Mono,monospace;font-size:1.6rem;font-weight:700;color:#00d4aa;'>{accuracy}%</div>
@@ -284,7 +297,9 @@ with col_l:
         st.markdown("""
         <div style='background:rgba(13,21,38,0.75);border:1px dashed #1e2d4a;border-radius:16px;
                     padding:3.5rem 2rem;text-align:center;backdrop-filter:blur(12px);'>
-            <div style='font-size:2.5rem;margin-bottom:1rem;opacity:0.2;'>🫀</div>
+            <svg width="52" height="48" viewBox="0 0 30 28" fill="none" style="opacity:0.15;margin-bottom:1rem;">
+                <path d="M15 26S2 17.5 2 8.5C2 5 4.5 2 8 2c2.5 0 4.8 1.4 6.2 3.5L15 7l0.8-1.5C17.2 3.4 19.5 2 22 2c3.5 0 6 3 6 6.5C28 17.5 15 26 15 26Z" fill="#00d4aa"/>
+            </svg>
             <div style='font-size:0.85rem;color:#334155;'>
                 Open the panel above ↑<br>fill in patient data<br>
                 then click <strong style="color:#475569;">⚡ Run Prediction</strong>
@@ -323,3 +338,22 @@ with col_r:
     st.pyplot(fig, use_container_width=True)
     plt.close(fig)
     st.markdown("</div>", unsafe_allow_html=True)
+
+# ── Made by footer ───────────────────────────────────────────────────────────────
+st.markdown("<div style='height:2rem;'></div>", unsafe_allow_html=True)
+st.markdown("""
+<div style='text-align:center;padding:1.2rem 2rem;
+            background:rgba(13,21,38,0.75);border:1px solid #1e2d4a;
+            border-radius:14px;backdrop-filter:blur(12px);'>
+    <div style='font-size:0.68rem;letter-spacing:0.15em;text-transform:uppercase;
+                color:#475569;margin-bottom:0.5rem;'>Made by</div>
+    <div style='font-family:Syne,sans-serif;font-size:1.2rem;font-weight:700;
+                background:linear-gradient(135deg,#00d4aa,#0099cc);
+                -webkit-background-clip:text;-webkit-text-fill-color:transparent;'>
+        Fouad Ghadi &nbsp;·&nbsp; Yassine Ait Bella &nbsp;·&nbsp; Rabi Ilyas &nbsp;·&nbsp; Yahiaoui Ziyad &nbsp;·&nbsp; Chakir Mohamed
+    </div>
+    <div style='font-size:0.72rem;color:#334155;margin-top:0.4rem;'>
+        Centrale Casablanca · Coding Week · March 2026
+    </div>
+</div>
+""", unsafe_allow_html=True)
