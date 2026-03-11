@@ -31,6 +31,22 @@ html, body, [class*="css"], .stApp {
 [data-testid="stSidebar"] {
     background: #0d1526 !important;
     border-right: 1px solid #1e2d4a;
+    display: block !important;
+    visibility: visible !important;
+    min-width: 280px !important;
+}
+[data-testid="stSidebar"][aria-expanded="false"] {
+    display: block !important;
+    min-width: 280px !important;
+}
+/* Sidebar toggle button - make it visible */
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    color: #00d4aa !important;
+    background: #0d1526 !important;
+    border: 1px solid #1e2d4a !important;
+    border-radius: 0 8px 8px 0 !important;
 }
 [data-testid="stSidebar"] * { color: #cbd5e1 !important; }
 [data-testid="stSidebar"] label { color: #94a3b8 !important; font-size: 0.78rem !important; }
