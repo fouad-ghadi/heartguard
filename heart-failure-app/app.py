@@ -362,7 +362,7 @@ st.markdown("""
             background:rgba(13,21,38,0.75);border:1px solid #1e2d4a;
             border-radius:14px;backdrop-filter:blur(12px);'>
     <div style='font-size:0.68rem;letter-spacing:0.15em;text-transform:uppercase;
-                color:#475569;margin-bottom:0.5rem;'>Made by</div>
+                color:#475569;margin-bottom:0.5rem;'>Designed and Developed by</div>
     <div style='font-family:Syne,sans-serif;font-size:1.2rem;font-weight:700;
                 background:linear-gradient(135deg,#00d4aa,#0099cc);
                 -webkit-background-clip:text;-webkit-text-fill-color:transparent;'>
