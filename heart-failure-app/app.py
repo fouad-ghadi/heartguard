@@ -89,6 +89,11 @@ input_df = pd.DataFrame([{
 # Prediction
 # ------------------------------------------------
 if model is not None:
+    # 🌟 LE CORRECTIF EST ICI : 
+    # On force notre dataframe à adopter l'ordre exact attendu par le modèle
+    colonnes_attendues = model.feature_names_in_
+    input_df = input_df[colonnes_attendues]
+    
     probability = model.predict_proba(input_df)[0][1]
 else:
     # fallback demo calculation if model is missing
@@ -98,7 +103,6 @@ else:
     )
 
 risk = float(probability * 100)
-
 # ------------------------------------------------
 # Risk Gauge
 # ------------------------------------------------
