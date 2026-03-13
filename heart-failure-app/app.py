@@ -362,11 +362,12 @@ st.markdown("""
             background:rgba(13,21,38,0.75);border:1px solid #1e2d4a;
             border-radius:14px;backdrop-filter:blur(12px);'>
     <div style='font-size:0.68rem;letter-spacing:0.15em;text-transform:uppercase;
-                color:#475569;margin-bottom:0.5rem;'>Designed and Developed by</div>
+                color:#475569;margin-bottom:0.5rem;'>Made by</div>
     <div style='font-family:Syne,sans-serif;font-size:1.2rem;font-weight:700;
                 background:linear-gradient(135deg,#00d4aa,#0099cc);
                 -webkit-background-clip:text;-webkit-text-fill-color:transparent;'>
-        ✦ &nbsp; Fouad Ghadi – Group 16 &nbsp; ✦
+        ✦ &nbsp; Fouad Ghadi &nbsp;·&nbsp; Yassine Ait Bella &nbsp;·&nbsp; Rabi Ilyas 
+        &nbsp;·&nbsp; Yahiaoui Ziyad &nbsp;·&nbsp; Chakir Mohamed &nbsp; ✦
     </div>
     <div style='font-size:0.72rem;color:#334155;margin-top:0.4rem;'>
         Centrale Casablanca · Coding Week · March 2026
