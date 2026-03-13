@@ -67,8 +67,12 @@ st.markdown("### Assistant IA pour la Prédiction du Risque d'Insuffisance Cardi
 try:
     modele = joblib.load("modele.pkl")
     
-    # 1. 🌟 CORRECTION DE L'ORDRE DES COLONNES
-    colonnes_attendues = modele.feature_names_in_
+    # 1. 🌟 CORRECTION DE L'ORDRE (Sécurisée : sans feature_names_in_)
+    colonnes_attendues = [
+        'age', 'anaemia', 'creatinine_phosphokinase', 'diabetes', 
+        'ejection_fraction', 'high_blood_pressure', 'platelets', 
+        'serum_creatinine', 'serum_sodium', 'sex', 'smoking', 'time'
+    ]
     df_patient = df_patient[colonnes_attendues]
     
     # 2. 🌟 PRÉDICTION BRUTE
@@ -92,31 +96,32 @@ try:
     else:
         st.success(f"✅ FAIBLE RISQUE ({pourcentage_risque}%)")
         
-    # Optionnel: Affichage du graphique d'importance (simplifié)
-    st.markdown("### Facteurs de risque principaux du patient")
-    fig, ax = plt.subplots(figsize=(8, 4))
-    fig.patch.set_alpha(0)
-    ax.set_facecolor("none")
-    
-    # Simulation simple d'importance pour l'UI
-    importances = pd.Series(modele.feature_importances_, index=colonnes_attendues)
-    importances.nlargest(5).sort_values().plot(kind='barh', color='#00d4aa', ax=ax)
-    
-    ax.set_title("Poids des indicateurs", color="#94a3b8")
-    ax.tick_params(colors="#94a3b8")
-    for spine in ax.spines.values():
-        spine.set_visible(False)
+    # 4. 📊 GRAPHIQUE SÉCURISÉ (Try/Except indépendant)
+    try:
+        st.markdown("### Facteurs de risque principaux du patient")
+        fig, ax = plt.subplots(figsize=(8, 4))
+        fig.patch.set_alpha(0)
+        ax.set_facecolor("none")
         
-    st.pyplot(fig)
+        importances = pd.Series(modele.feature_importances_, index=colonnes_attendues)
+        importances.nlargest(5).sort_values().plot(kind='barh', color='#00d4aa', ax=ax)
+        
+        ax.set_title("Poids des indicateurs", color="#94a3b8")
+        ax.tick_params(colors="#94a3b8")
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+            
+        st.pyplot(fig)
+    except Exception as e_graph:
+        st.info("Le graphique détaillé n'a pas pu s'afficher, mais la prédiction est correcte.")
 
 except FileNotFoundError:
     st.warning("Veuillez entraîner le modèle en exécutant d'abord `train_model.py` (ou assurez-vous que `modele.pkl` est dans le même dossier).")
 except Exception as e:
-    st.error(f"Une erreur est survenue lors de la prédiction : {e}")
+    st.error(f"Une erreur système est survenue lors de la prédiction : {e}")
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("<div style='height:2rem;'></div>", unsafe_allow_html=True)
-
 st.markdown("""
 <div style='text-align:center;padding:1.2rem 2rem;
             background:rgba(13,21,38,0.75);border:1px solid #1e2d4a;
