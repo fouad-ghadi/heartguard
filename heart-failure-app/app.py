@@ -115,4 +115,21 @@ except Exception as e:
     st.error(f"Une erreur est survenue lors de la prédiction : {e}")
 
 # ── Footer ────────────────────────────────────────────────────────────────────
-st.markdown("<div style='height:2
+st.markdown("<div style='height:2rem;'></div>", unsafe_allow_html=True)
+
+st.markdown("""
+<div style='text-align:center;padding:1.2rem 2rem;
+            background:rgba(13,21,38,0.75);border:1px solid #1e2d4a;
+            border-radius:14px;backdrop-filter:blur(12px);'>
+    <div style='font-size:0.68rem;letter-spacing:0.15em;text-transform:uppercase;
+                color:#475569;margin-bottom:0.5rem;'>Designed and Developed by</div>
+    <div style='font-family:Syne,sans-serif;font-size:1.2rem;font-weight:700;
+                background:linear-gradient(135deg,#00d4aa,#0099cc);
+                -webkit-background-clip:text;-webkit-text-fill-color:transparent;'>
+        ✦ Fouad Ghadi – Group 16 ✦
+    </div>
+    <div style='font-size:0.72rem;color:#334155;margin-top:0.4rem;'>
+        Centrale Casablanca · Coding Week · March 2026
+    </div>
+</div>
+""", unsafe_allow_html=True)
